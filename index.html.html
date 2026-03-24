@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft 円ジェネレーター</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media', // OS/ブラウザの設定に合わせてダークモードを有効化
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; cursor: grab; }
+        canvas:active { cursor: grabbing; }
+        
+        /* カスタムスクロールバー (ライトモード) */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* カスタムスクロールバー (ダークモード) */
+        @media (prefers-color-scheme: dark) {
+            ::-webkit-scrollbar-track { background: #374151; }
+            ::-webkit-scrollbar-thumb { background: #4b5563; }
+            ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col font-sans bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors">
+
+    <!-- ヘッダー -->
+    <header class="bg-emerald-600 dark:bg-emerald-800 text-white p-4 shadow-md flex justify-between items-center z-10 transition-colors">
+        <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h1 class="text-xl font-bold">マイクラ 円ジェネレーター</h1>
+        </div>
+        <a href="https://github.com" target="_blank" class="text-emerald-100 dark:text-emerald-200 hover:text-white transition-colors" title="View on GitHub">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+        </a>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- 左側コントロールパネル -->
+        <aside class="w-full md:w-80 bg-white dark:bg-gray-800 p-5 shadow-md flex flex-col gap-6 overflow-y-auto z-10 border-r border-gray-200 dark:border-gray-700 transition-colors">
+            <div>
+                <h2 class="text-lg font-semibold mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">サイズ設定</h2>
+                
+                <div class="flex gap-4 mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="sizeType" value="diameter" class="form-radio text-emerald-600 focus:ring-emerald-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600" checked>
+                        <span>直径</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="sizeType" value="radius" class="form-radio text-emerald-600 focus:ring-emerald-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                        <span>半径</span>
+                    </label>
+                </div>
+
+                <div class="flex items-end gap-2">
+                    <div class="flex-1">
+                        <input type="number" id="sizeInput" min="3" max="500" value="11" 
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow">
+                    </div>
+                    <button id="generateBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-sm">
+                        生成
+                    </button>
+                </div>
+                <p id="sizeHint" class="text-xs text-gray-500 dark:text-gray-400 mt-2">実際の直径: 11ブロック</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">建築ガイド (1/4象限)</h2>
+                <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md border border-gray-200 dark:border-gray-600 transition-colors">
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">上から時計回りにブロックを置く数です。</p>
+                    <div id="segmentsList" class="flex flex-wrap gap-2 font-mono font-bold text-lg">
+                        <!-- ここにパーツの長さが表示されます -->
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 leading-relaxed">
+                    ※ マウスホイールで拡大縮小、ドラッグで移動ができます。<br>
+                    ※ 図中の数字は、その直線部分のブロック数を示しています。
+                </p>
+            </div>
+            
+            <div class="mt-auto pt-4 text-xs text-gray-400 dark:text-gray-500 text-center">
+                Generated for Minecraft Builders
+            </div>
+        </aside>
+
+        <!-- 右側キャンバスエリア -->
+        <main class="flex-1 relative bg-gray-100 dark:bg-gray-900 overflow-hidden transition-colors" id="canvasContainer">
+            <canvas id="circleCanvas"></canvas>
+            
+            <!-- リセットボタン -->
+            <button id="resetViewBtn" class="absolute bottom-6 right-6 bg-white dark:bg-gray-800 p-2 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-gray-200 dark:border-gray-700" title="視点をリセット">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+            </button>
+        </main>
+    </div>
+
+    <script>
+        /**
+         * アプリケーションのロジック
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // UI要素
+            const sizeInput = document.getElementById('sizeInput');
+            const typeRadios = document.getElementsByName('sizeType');
+            const generateBtn = document.getElementById('generateBtn');
+            const sizeHint = document.getElementById('sizeHint');
+            const segmentsList = document.getElementById('segmentsList');
+            
+            // Canvas要素
+            const container = document.getElementById('canvasContainer');
+            const canvas = document.getElementById('circleCanvas');
+            const ctx = canvas.getContext('2d');
+            const resetViewBtn = document.getElementById('resetViewBtn');
+
+            // 状態管理
+            let currentDiameter = 11;
+            let blocks = [];      // 円を構成するブロックの座標配列 {x, y}
+            let displayTexts = []; // Canvas上に表示する数字の配列 {text, x, y}
+            
+            // View管理 (パン・ズーム)
+            let view = { x: 0, y: 0, scale: 20 };
+            let isDragging = false;
+            let lastMouse = { x: 0, y: 0 };
+
+            // 初期化
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            updateCircle();
+
+            // OSのダークモード設定の変更を監視して再描画
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+            // イベントリスナー
+            generateBtn.addEventListener('click', updateCircle);
+            sizeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') updateCircle();
+            });
+
+            typeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    let val = parseInt(sizeInput.value) || 11;
+                    if (radio.value === 'radius') {
+                        // 直径から半径へ切り替え (大まかな計算)
+                        sizeInput.value = Math.max(1, Math.floor(val / 2));
+                    } else {
+                        // 半径から直径へ切り替え
+                        sizeInput.value = val * 2;
+                    }
+                    updateHint();
+                });
+            });
+
+            sizeInput.addEventListener('input', updateHint);
+
+            function updateHint() {
+                const val = parseInt(sizeInput.value) || 0;
+                const isRadius = document.querySelector('input[name="sizeType"]:checked').value === 'radius';
+                const d = isRadius ? val * 2 : val;
+                sizeHint.textContent = `実際の直径: ${d} ブロック`;
+            }
+
+            // Canvasのマウスイベント
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+                view.x += dx;
+                view.y += dy;
+                lastMouse = { x: e.clientX, y: e.clientY };
+                draw();
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomIntensity = 0.1;
+                const mouseX = e.clientX - canvas.getBoundingClientRect().left;
+                const mouseY = e.clientY - canvas.getBoundingClientRect().top;
+
+                // ズーム前のマウス位置（キャンバス論理座標）
+                const logicX = (mouseX - view.x) / view.scale;
+                const logicY = (mouseY - view.y) / view.scale;
+
+                // スケール更新
+                let newScale = view.scale * (1 - Math.sign(e.deltaY) * zoomIntensity);
+                newScale = Math.max(2, Math.min(newScale, 200)); // 制限
+                
+                // ズーム後もマウス位置が同じ論理座標を指すようにオフセットを調整
+                view.x = mouseX - logicX * newScale;
+                view.y = mouseY - logicY * newScale;
+                view.scale = newScale;
+                
+                draw();
+            }, { passive: false });
+
+            resetViewBtn.addEventListener('click', centerView);
+
+            /**
+             * キャンバスのリサイズ
+             */
+            function resizeCanvas() {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                draw();
+            }
+
+            /**
+             * メイン処理：円を計算して表示を更新する
+             */
+            function updateCircle() {
+                let val = parseInt(sizeInput.value);
+                if (isNaN(val) || val <= 0) val = 11;
+                
+                const isRadius = document.querySelector('input[name="sizeType"]:checked').value === 'radius';
+                currentDiameter = isRadius ? val * 2 : val;
+                
+                // 最大サイズの制限 (ブラウザクラッシュ防止)
+                if (currentDiameter > 1000) currentDiameter = 1000;
+
+                blocks = generateMinecraftCircle(currentDiameter);
+                displayTexts = calculateDisplayTexts(blocks);
+                
+                updateGuidePanel();
+                centerView();
+            }
+
+            /**
+             * 視点を中央にリセットする
+             */
+            function centerView() {
+                const padding = 40; // px
+                const scaleX = (canvas.width - padding * 2) / currentDiameter;
+                const scaleY = (canvas.height - padding * 2) / currentDiameter;
+                
+                view.scale = Math.min(scaleX, scaleY, 40); // 最大スケールは40に制限
+                
+                // 中央へ配置
+                const gridPixelWidth = currentDiameter * view.scale;
+                const gridPixelHeight = currentDiameter * view.scale;
+                view.x = (canvas.width - gridPixelWidth) / 2;
+                view.y = (canvas.height - gridPixelHeight) / 2;
+                
+                draw();
+            }
+
+            /**
+             * マイクラの1ピクセル幅の円を生成するアルゴリズム
+             */
+            function generateMinecraftCircle(diameter) {
+                let grid = Array(diameter).fill(null).map(() => Array(diameter).fill(false));
+                let cx = (diameter - 1) / 2;
+                let cy = (diameter - 1) / 2;
+                let r = (diameter - 1) / 2;
+
+                // X軸方向からの走査
+                for (let y = 0; y < diameter; y++) {
+                    let dy = y - cy;
+                    let dx_sq = r * r - dy * dy;
+                    if (dx_sq >= 0) {
+                        let dx = Math.sqrt(dx_sq);
+                        let x1 = Math.round(cx + dx);
+                        let x2 = Math.round(cx - dx);
+                        if (x1 >= 0 && x1 < diameter) grid[y][x1] = true;
+                        if (x2 >= 0 && x2 < diameter) grid[y][x2] = true;
+                    }
+                }
+
+                // Y軸方向からの走査
+                for (let x = 0; x < diameter; x++) {
+                    let dx = x - cx;
+                    let dy_sq = r * r - dx * dx;
+                    if (dy_sq >= 0) {
+                        let dy = Math.sqrt(dy_sq);
+                        let y1 = Math.round(cy + dy);
+                        let y2 = Math.round(cy - dy);
+                        if (y1 >= 0 && y1 < diameter) grid[y1][x] = true;
+                        if (y2 >= 0 && y2 < diameter) grid[y2][x] = true;
+                    }
+                }
+
+                let result = [];
+                for (let y = 0; y < diameter; y++) {
+                    for (let x = 0; x < diameter; x++) {
+                        if (grid[y][x]) result.push({ x, y });
+                    }
+                }
+                return result;
+            }
+
+            /**
+             * Canvas上に表示する数字（各パーツの長さ）の配置位置を計算
+             */
+            function calculateDisplayTexts(blocks) {
+                let segments = [];
+                let visitedHorizontal = new Set();
+                let visitedVertical = new Set();
+
+                blocks.sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+                for (let i = 0; i < blocks.length; i++) {
+                    let start = blocks[i];
+                    let key = `${start.x},${start.y}`;
+                    if (visitedHorizontal.has(key)) continue;
+
+                    let len = 1;
+                    while (true) {
+                        let next = blocks.find(b => b.y === start.y && b.x === start.x + len);
+                        if (next) {
+                            visitedHorizontal.add(`${next.x},${next.y}`);
+                            len++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (len > 1) {
+                        visitedHorizontal.add(key);
+                        segments.push({
+                            text: len.toString(),
+                            x: start.x + (len - 1) / 2,
+                            y: start.y,
+                            isCorner: false
+                        });
+                    }
+                }
+
+                blocks.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
+                for (let i = 0; i < blocks.length; i++) {
+                    let start = blocks[i];
+                    let key = `${start.x},${start.y}`;
+                    if (visitedVertical.has(key)) continue;
+
+                    let len = 1;
+                    while (true) {
+                        let next = blocks.find(b => b.x === start.x && b.y === start.y + len);
+                        if (next) {
+                            visitedVertical.add(`${next.x},${next.y}`);
+                            len++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (len > 1) {
+                        visitedVertical.add(key);
+                        segments.push({
+                            text: len.toString(),
+                            x: start.x,
+                            y: start.y + (len - 1) / 2,
+                            isCorner: false
+                        });
+                    }
+                }
+
+                blocks.forEach(b => {
+                    let key = `${b.x},${b.y}`;
+                    if (!visitedHorizontal.has(key) && !visitedVertical.has(key)) {
+                        segments.push({
+                            text: '1',
+                            x: b.x,
+                            y: b.y,
+                            isCorner: true
+                        });
+                    }
+                });
+
+                return segments;
+            }
+
+            /**
+             * サイドパネルの「建築ガイド」リストを更新する
+             */
+            function updateGuidePanel() {
+                segmentsList.innerHTML = '';
+                
+                let cx = (currentDiameter - 1) / 2;
+                let cy = (currentDiameter - 1) / 2;
+
+                let q1Blocks = blocks.filter(b => b.x >= Math.floor(cx) && b.y <= Math.floor(cy));
+
+                q1Blocks.sort((a, b) => {
+                    let angleA = Math.atan2(a.y - cy, a.x - cx);
+                    let angleB = Math.atan2(b.y - cy, b.x - cx);
+                    return angleA - angleB;
+                });
+
+                if (q1Blocks.length === 0) return;
+
+                let traceSegments = [];
+                let currentCount = 1;
+                let currentDir = null;
+
+                for (let i = 1; i < q1Blocks.length; i++) {
+                    let prev = q1Blocks[i - 1];
+                    let curr = q1Blocks[i];
+                    
+                    let dx = curr.x - prev.x;
+                    let dy = curr.y - prev.y;
+
+                    let dir;
+                    if (dx > 0 && dy === 0) dir = 'H';
+                    else if (dx === 0 && dy > 0) dir = 'V';
+                    else dir = 'D';
+
+                    if (dir === 'D') {
+                        traceSegments.push(currentCount);
+                        currentCount = 1;
+                        currentDir = null;
+                    } else {
+                        if (currentDir === null) {
+                            currentDir = dir;
+                            currentCount++;
+                        } else if (currentDir === dir) {
+                            currentCount++;
+                        } else {
+                            traceSegments.push(currentCount);
+                            currentCount = 1;
+                            currentDir = dir;
+                        }
+                    }
+                }
+                traceSegments.push(currentCount);
+
+                traceSegments.forEach((len, index) => {
+                    const span = document.createElement('span');
+                    // ダークモード対応のバッジクラス
+                    span.className = 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 px-2 py-1 rounded shadow-sm';
+                    span.textContent = len;
+                    segmentsList.appendChild(span);
+                    
+                    if (index < traceSegments.length - 1) {
+                        const comma = document.createElement('span');
+                        comma.className = 'text-gray-400 dark:text-gray-500 font-normal';
+                        comma.textContent = ',';
+                        segmentsList.appendChild(comma);
+                    }
+                });
+            }
+
+            /**
+             * Canvasへの描画処理
+             */
+            function draw() {
+                // ダークモード判定
+                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                // テーマに応じたカラーパレット
+                const colors = {
+                    bg: isDark ? '#111827' : '#f3f4f6', // gray-900 : gray-100
+                    grid: isDark ? '#374151' : '#e5e7eb', // gray-700 : gray-200
+                    axis: isDark ? '#4b5563' : '#cbd5e1', // gray-600 : slate-300
+                    centerBlock: isDark ? '#4b5563' : '#d1d5db', // gray-600 : gray-300 (ライトグレー)
+                    centerStroke: isDark ? '#6b7280' : '#9ca3af',
+                    blockFill: isDark ? '#059669' : '#10b981', // emerald-600 : emerald-500
+                    blockStroke: isDark ? '#047857' : '#047857', // emerald-700
+                    textBg: isDark ? 'rgba(31, 41, 55, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                    textNormal: isDark ? '#6ee7b7' : '#047857', // emerald-300 : emerald-700
+                    textCorner: isDark ? '#fca5a5' : '#b91c1c', // red-300 : red-700
+                    guideLine: isDark ? '#9ca3af' : '#6b7280', // gray-400 : gray-500
+                    distText: isDark ? '#f3f4f6' : '#374151' // gray-100 : gray-700
+                };
+
+                // 背景クリア
+                ctx.fillStyle = colors.bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.translate(view.x, view.y);
+                ctx.scale(view.scale, view.scale);
+
+                // 1. グリッドの描画
+                if (view.scale > 4) {
+                    ctx.lineWidth = 1 / view.scale;
+                    ctx.strokeStyle = colors.grid;
+                    
+                    ctx.beginPath();
+                    for (let x = 0; x <= currentDiameter; x++) {
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, currentDiameter);
+                    }
+                    for (let y = 0; y <= currentDiameter; y++) {
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(currentDiameter, y);
+                    }
+                    ctx.stroke();
+
+                    // 中心線の強調
+                    ctx.strokeStyle = colors.axis;
+                    ctx.beginPath();
+                    ctx.moveTo(currentDiameter / 2, 0);
+                    ctx.lineTo(currentDiameter / 2, currentDiameter);
+                    ctx.moveTo(0, currentDiameter / 2);
+                    ctx.lineTo(currentDiameter, currentDiameter / 2);
+                    ctx.stroke();
+                }
+
+                // ==========================================
+                // 1.5 中心マスの描画 (ライトグレー)
+                // ==========================================
+                ctx.fillStyle = colors.centerBlock;
+                const cx_start = Math.floor((currentDiameter - 1) / 2);
+                const cx_end = Math.ceil((currentDiameter - 1) / 2);
+                const cy_start = Math.floor((currentDiameter - 1) / 2);
+                const cy_end = Math.ceil((currentDiameter - 1) / 2);
+
+                for (let y = cy_start; y <= cy_end; y++) {
+                    for (let x = cx_start; x <= cx_end; x++) {
+                        ctx.fillRect(x, y, 1, 1);
+                        // ズーム時のみ中心マスの枠線を描画
+                        if (view.scale > 8) {
+                            ctx.strokeStyle = colors.centerStroke;
+                            ctx.lineWidth = 1 / view.scale;
+                            ctx.strokeRect(x, y, 1, 1);
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 1.6 中心から上端への距離線と数字の描画
+                // ==========================================
+                let topBlockY = currentDiameter;
+                // 中心軸上にあるブロックの中で一番上（Yが最小）のものを探す
+                blocks.forEach(b => {
+                    if ((b.x === cx_start || b.x === cx_end) && b.y < topBlockY) {
+                        topBlockY = b.y;
+                    }
+                });
+
+                // 上方向への距離線（中心マスの上辺から、上端のブロックの下辺まで）
+                let startY = cy_start;
+                let endY = topBlockY + 1; 
+                let lineX = currentDiameter / 2;
+
+                if (startY > endY && view.scale > 4) {
+                    // 点線を描画
+                    ctx.strokeStyle = colors.guideLine;
+                    ctx.lineWidth = 1.5 / view.scale;
+                    ctx.setLineDash([0.3, 0.3]); // 破線の間隔
+                    ctx.beginPath();
+                    ctx.moveTo(lineX, startY);
+                    ctx.lineTo(lineX, endY);
+                    ctx.stroke();
+                    ctx.setLineDash([]); // リセット
+
+                    // 距離の数字を描画
+                    if (view.scale > 6) {
+                        const distText = (cy_start - topBlockY).toString();
+                        const textY = (startY + endY) / 2;
+                        
+                        ctx.font = 'bold 0.5px sans-serif';
+                        const tw = ctx.measureText(distText).width;
+                        const padX = 0.2, padY = 0.35;
+                        
+                        // テキストの背景（見やすくするため）
+                        ctx.fillStyle = colors.textBg;
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(lineX - tw/2 - padX, textY - padY, tw + padX*2, padY*2, 0.2);
+                        } else {
+                            ctx.fillRect(lineX - tw/2 - padX, textY - padY, tw + padX*2, padY*2);
+                        }
+                        ctx.fill();
+                        
+                        // テキスト描画
+                        ctx.fillStyle = colors.distText;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(distText, lineX, textY);
+                    }
+                }
+
+                // ==========================================
+                // 2. ブロックの描画
+                // ==========================================
+                ctx.fillStyle = colors.blockFill;
+                ctx.strokeStyle = colors.blockStroke;
+                ctx.lineWidth = 2 / view.scale;
+
+                blocks.forEach(b => {
+                    ctx.fillRect(b.x, b.y, 1, 1);
+                    if (view.scale > 8) {
+                        ctx.strokeRect(b.x, b.y, 1, 1);
+                    }
+                });
+
+                // ==========================================
+                // 3. 数字の描画 (各パーツの長さ)
+                // ==========================================
+                if (view.scale > 6) {
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = 'bold 0.6px sans-serif'; 
+
+                    displayTexts.forEach(dt => {
+                        const drawX = dt.x + 0.5;
+                        const drawY = dt.y + 0.5;
+
+                        // テキスト背景の半透明丸
+                        ctx.fillStyle = colors.textBg;
+                        ctx.beginPath();
+                        ctx.arc(drawX, drawY, 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = dt.isCorner ? colors.textCorner : colors.textNormal;
+                        ctx.fillText(dt.text, drawX, drawY);
+                    });
+                }
+
+                ctx.restore();
+            }
+        });
+    </script>
+</body>
+</html>
